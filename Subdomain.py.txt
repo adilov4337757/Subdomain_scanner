@@ -1,0 +1,108 @@
+from flask import Flask, request, render_template_string
+import requests
+import re
+
+app = Flask(__name__)
+
+HTML_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subdomain Tapıcı</title>
+</head>
+<body style="font-family: Arial; background-color: #f9f9f9;">
+    <h2>Subdomain Axtarış Sistemi</h2>
+    <form method="post">
+        Domain adı daxil et (məs: example.com):<br>
+        <input type="text" name="domain" required>
+        <input type="submit" value="Axtar">
+    </form>
+    {% if result %}
+        <h3>Tapılan Subdomainlər ({{ result|length }} ədəd):</h3>
+        <ul>
+            {% for sub in result %}
+                <li>{{ sub }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
+'''
+
+def get_subdomains_crtsh(domain):
+    try:
+        url = f"https://crt.sh/?q=%25.{domain}&output=json"
+        res = requests.get(url, timeout=10)
+        subdomains = set()
+        if res.status_code == 200:
+            data = res.json()
+            for entry in data:
+                name_value = entry.get('name_value', '')
+                for sub in name_value.split('\n'):
+                    if domain in sub:
+                        subdomains.add(sub.strip())
+        return subdomains
+    except:
+        return set()
+
+def get_subdomains_rapiddns(domain):
+    try:
+        url = f"https://rapiddns.io/subdomain/{domain}?full=1&download=json"
+        res = requests.get(url, timeout=10)
+        subdomains = set()
+        if res.status_code == 200:
+            matches = re.findall(r'"domain":"(.*?)"', res.text)
+            subdomains.update(matches)
+        return subdomains
+    except:
+        return set()
+
+def get_subdomains_buffer(domain):
+    try:
+        url = f"https://dns.bufferover.run/dns?q=.{domain}"
+        res = requests.get(url, timeout=10)
+        subdomains = set()
+        if res.status_code == 200:
+            data = res.json()
+            if 'FDNS_A' in data:
+                for entry in data['FDNS_A']:
+                    sub = entry.split(',')[1]
+                    if domain in sub:
+                        subdomains.add(sub.strip())
+        return subdomains
+    except:
+        return set()
+
+def get_subdomains_wayback(domain):
+    try:
+        url = f"http://web.archive.org/cdx/search/cdx?url=*.{domain}&output=json&fl=original&collapse=urlkey"
+        res = requests.get(url, timeout=10)
+        subdomains = set()
+        if res.status_code == 200:
+            data = res.json()
+            for row in data[1:]:
+                link = row[0]
+                parsed = re.findall(r"https?://([^/]+)/?", link)
+                for item in parsed:
+                    if domain in item:
+                        subdomains.add(item.strip())
+        return subdomains
+    except:
+        return set()
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    result = []
+    if request.method == 'POST':
+        domain = request.form['domain'].strip()
+        subdomains = set()
+        subdomains |= get_subdomains_crtsh(domain)
+        subdomains |= get_subdomains_rapiddns(domain)
+        subdomains |= get_subdomains_buffer(domain)
+        subdomains |= get_subdomains_wayback(domain)
+        result = sorted(subdomains)
+    return render_template_string(HTML_TEMPLATE, result=result)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+                                                                                     
