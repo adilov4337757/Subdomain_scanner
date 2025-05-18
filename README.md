@@ -39,8 +39,11 @@ http://127.0.0.1:5000
 2. Aşağıdakı metodlar çağırılır:
 
 get_subdomains_crtsh(domain)
+
 get_subdomains_rapiddns(domain)
+
 get_subdomains_buffer(domain)
+
 get_subdomains_wayback(domain)
 
 3. Hər metod öz mənbəsindən nəticə qaytarır.
