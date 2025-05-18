@@ -23,8 +23,11 @@ Layihənin işləməsi üçün aşağıdakı Python kitabxanalarını quraşdır
 pip install flask requests
 
 ## İSTİFADƏ QAYDASI 
-kodu  subdomain.py  fayılına yerləşdiririk python3 ilə işə salırıq
+kodu  subdomain.py  fayılına yerləşdiririk python3 ilə işə salırıq.
+
 python3 subdomain.py
+
+
 ## Brauzerdə aç 
 http://127.0.0.1:5000
 
